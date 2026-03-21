@@ -1,0 +1,40 @@
+name: Baller ML — Train & Predict
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # every 6 hours (scrape + retrain)
+  workflow_dispatch:          # manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install requests numpy
+
+      - name: Step 1 — Scrape historical data
+        run: python historical_scraper.py
+
+      - name: Step 2 — Train ML models & generate predictions
+        run: python ml_trainer.py
+
+      - name: Commit updated predictions
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add historical_data.json ml_predictions.json
+          git diff --staged --quiet || git commit -m "🤖 ML update: $(TZ='Asia/Kolkata' date '+%d %b %Y %I:%M %p IST')"
+          git push
