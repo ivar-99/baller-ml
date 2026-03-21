@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🤖 Baller ML — AI Bonus Predictor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:     #060a12;
+      --panel:  #0c1322;
+      --border: #182440;
+      --accent: #00e5ff;
+      --gold:   #ffd700;
+      --green:  #00e676;
+      --purple: #ce93d8;
+      --orange: #ffab40;
+      --red:    #ff5252;
+      --blue:   #448aff;
+      --text:   #cdd8f0;
+      --muted:  #445570;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Courier New', monospace;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    /* HEADER */
+    header { text-align: center; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+    header h1 { font-size: clamp(1.2rem, 4vw, 2rem); color: var(--accent); letter-spacing: 3px; text-transform: uppercase; text-shadow: 0 0 20px rgba(0,229,255,0.35); }
+    .ist-clock { font-size: clamp(1rem, 3vw, 1.5rem); color: var(--gold); margin-top: 6px; font-weight: bold; }
+    .tag { display: inline-block; margin-top: 6px; padding: 3px 14px; border: 1px solid var(--border); border-radius: 20px; font-size: 0.7rem; color: var(--muted); }
+    .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 5px; animation: blink 1.2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+    /* GRID */
+    .grid { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; max-width: 1200px; margin: 0 auto; }
+    @media(max-width:680px){ .grid { grid-template-columns: 1fr; } }
+    .full { grid-column: 1/-1; }
+
+    /* PANEL */
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+    .panel.three { border-color: #ff6d00; box-shadow: 0 0 18px rgba(255,109,0,0.1); }
+    .panel.five  { border-color: #9c27b0; box-shadow: 0 0 18px rgba(156,39,176,0.12); }
+    .panel-title { font-size: 0.68rem; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+    /* PREDICTION HERO */
+    .hero { background: rgba(0,0,0,0.35); border-radius: 10px; padding: 16px; text-align: center; margin-bottom: 14px; }
+    .hero-label { font-size: 0.62rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+    .hero-time { font-size: clamp(0.95rem,2.5vw,1.3rem); font-weight: bold; margin: 6px 0 4px; }
+    .three .hero-time { color: #ff6d00; }
+    .five  .hero-time { color: var(--purple); }
+    .badge { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.72rem; font-weight: bold; margin-top: 4px; }
+    .badge-now    { background: rgba(255,82,82,0.2);  color: var(--red);    border: 1px solid var(--red); }
+    .badge-soon   { background: rgba(255,214,0,0.15); color: var(--gold);   border: 1px solid var(--gold); }
+    .badge-coming { background: rgba(0,230,118,0.12); color: var(--green);  border: 1px solid var(--green); }
+    .badge-not    { background: rgba(68,138,255,0.12);color: var(--blue);   border: 1px solid var(--blue); }
+
+    /* MODEL COMPARISON */
+    .model-row { display: flex; gap: 10px; margin-bottom: 14px; }
+    .model-box { flex: 1; background: rgba(0,0,0,0.25); border-radius: 8px; padding: 10px; text-align: center; }
+    .model-box .model-name { font-size: 0.58rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .model-box .model-val  { font-size: 1.1rem; font-weight: bold; color: var(--gold); }
+    .model-box .model-sub  { font-size: 0.62rem; color: var(--muted); margin-top: 2px; }
+
+    /* STAT GRID */
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .stat-box { background: rgba(0,0,0,0.2); border-radius: 7px; padding: 9px 10px; text-align: center; }
+    .stat-val { font-size: 1.2rem; font-weight: bold; color: var(--gold); }
+    .stat-lbl { font-size: 0.58rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+    /* HOUR BAR CHART */
+    .chart-title { font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .hour-chart { display: flex; align-items: flex-end; gap: 2px; height: 80px; }
+    .hour-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+    .hour-bar { width: 100%; border-radius: 2px 2px 0 0; min-height: 2px; transition: height 0.4s; }
+    .hour-bar.peak { background: var(--gold); }
+    .hour-bar.normal { background: rgba(0,229,255,0.35); }
+    .hour-bar.current { background: var(--green); }
+    .hour-lbl { font-size: 0.38rem; color: var(--muted); margin-top: 2px; }
+
+    /* DOW CHART */
+    .dow-chart { display: flex; gap: 6px; margin-top: 10px; }
+    .dow-box { flex: 1; background: rgba(0,0,0,0.2); border-radius: 6px; padding: 6px 4px; text-align: center; }
+    .dow-box.highest { border: 1px solid var(--gold); }
+    .dow-pct { font-size: 0.72rem; font-weight: bold; color: var(--gold); }
+    .dow-name { font-size: 0.5rem; color: var(--muted); margin-top: 2px; }
+
+    /* POISSON INFO */
+    .info-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(24,36,64,0.6); font-size: 0.75rem; }
+    .info-row:last-child { border-bottom: none; }
+    .info-key { color: var(--muted); }
+    .info-val { color: var(--text); font-weight: bold; }
+
+    /* TRAINING INFO */
+    .training-bar { background: rgba(0,229,255,0.06); border: 1px solid rgba(0,229,255,0.15); border-radius: 8px; padding: 10px 14px; font-size: 0.72rem; color: var(--muted); text-align: center; }
+    .training-bar strong { color: var(--accent); }
+
+    .no-data { text-align: center; padding: 30px; color: var(--muted); font-size: 0.8rem; }
+    .disclaimer { max-width: 1200px; margin: 14px auto 0; padding: 10px 16px; background: rgba(255,82,82,0.06); border: 1px solid rgba(255,82,82,0.18); border-radius: 8px; font-size: 0.62rem; color: var(--muted); text-align: center; line-height: 1.7; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🤖 Baller ML</h1>
+  <div class="ist-clock" id="live-ist">Loading…</div>
+  <div class="tag"><span class="dot"></span>ML retrained every 6 hours &nbsp;|&nbsp; Last: <span id="last-trained">—</span></div>
+</header>
+
+<div class="grid">
+
+  <!-- 3 ROLLS -->
+  <div class="panel three" id="p3">
+    <div class="panel-title">🎲 3 Rolls — ML Prediction</div>
+    <div class="no-data">Loading…</div>
+  </div>
+
+  <!-- 5 ROLLS -->
+  <div class="panel five" id="p5">
+    <div class="panel-title">🎰 5 Rolls — ML Prediction</div>
+    <div class="no-data">Loading…</div>
+  </div>
+
+  <!-- TRAINING INFO -->
+  <div class="panel full" id="p-info">
+    <div class="panel-title">📚 Training Data Info</div>
+    <div class="no-data">Loading…</div>
+  </div>
+
+</div>
+
+<div class="disclaimer">
+  ⚠️ This ML model uses <strong>Poisson Distribution</strong> + <strong>Time-Aware frequency analysis</strong> trained on historical data.
+  Bonus rounds use a certified RNG — no model can guarantee future outcomes.
+  Predictions represent <em>statistical probability windows</em>, not certainties.
+  All times in <strong>IST (UTC+5:30)</strong>. For observation purposes only. Gamble responsibly.
+</div>
+
+<script>
+  const ML_URL = 'ml_predictions.json';
+
+  // Live IST clock
+  function updateClock() {
+    const now = new Date();
+    const opts = { timeZone:'Asia/Kolkata', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true };
+    const t = now.toLocaleTimeString('en-IN', opts);
+    const d = now.toLocaleDateString('en-IN', { timeZone:'Asia/Kolkata', day:'2-digit', month:'short', year:'numeric' });
+    document.getElementById('live-ist').textContent = `🕒 ${d}, ${t} IST`;
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  function badgeHtml(status) {
+    if (!status) return '';
+    if (status.includes('NOW'))  return `<span class="badge badge-now">${status}</span>`;
+    if (status.includes('Soon')) return `<span class="badge badge-soon">${status}</span>`;
+    if (status.includes('Coming')) return `<span class="badge badge-coming">${status}</span>`;
+    return `<span class="badge badge-not">${status}</span>`;
+  }
+
+  function renderPanel(panelId, data, label) {
+    const panel = document.getElementById(panelId);
+    const title = panel.querySelector('.panel-title').outerHTML;
+
+    if (!data) {
+      panel.innerHTML = title + `<div class="no-data">No ${label} data yet.<br>Run the workflow first to scrape historical data.</div>`;
+      return;
+    }
+
+    const pred = data.prediction || {};
+    const poi  = data.poisson    || {};
+    const ta   = data.time_aware || {};
+    const ms   = pred.multiplier_stats || {};
+
+    // Hour chart
+    const hourProbs = {};
+    if (ta.peak_hours_ist) {
+      // rebuild from peak_hours only — approximate
+    }
+
+    // Poisson confidence
+    const ci50 = poi.ci_50_pct_min ? `${poi.ci_50_pct_min} min` : '—';
+    const ci80 = poi.ci_80_pct_min ? `${poi.ci_80_pct_min} min` : '—';
+
+    // Day of week
+    const dow = ta.day_of_week_probs || {};
+    const dowNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const dowKeys  = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    const maxDow = Math.max(...dowKeys.map(k => dow[k] || 0), 1);
+    const dowHtml = dowKeys.map((k, i) => {
+      const pct = dow[k] || 0;
+      const isMax = pct === maxDow;
+      return `<div class="dow-box ${isMax?'highest':''}">
+        <div class="dow-pct">${pct.toFixed(1)}%</div>
+        <div class="dow-name">${dowNames[i]}</div>
+      </div>`;
+    }).join('');
+
+    // Peak hours
+    const peaks = ta.peak_hours_ist || [];
+    const peakHtml = peaks.map(p =>
+      `<div class="info-row"><span class="info-key">${p.hour_ist} IST</span><span class="info-val">${p.probability_pct}% of events</span></div>`
+    ).join('');
+
+    panel.innerHTML = `
+      ${title}
+
+      <div class="hero">
+        <div class="hero-label">🔮 ML Predicted Next ${label}</div>
+        <div class="hero-time">${pred.predicted_next_ist || '—'}</div>
+        ${badgeHtml(pred.confidence_status)}
+        <div style="font-size:0.65rem;color:var(--muted);margin-top:6px;">
+          Last seen: ${pred.last_seen_ist || '—'} &nbsp;·&nbsp; ${pred.minutes_since_last || '—'} min ago
+        </div>
+      </div>
+
+      <div class="model-row">
+        <div class="model-box">
+          <div class="model-name">📐 Poisson</div>
+          <div class="model-val">${pred.poisson_prediction_min ?? '—'} min</div>
+          <div class="model-sub">Pure math model</div>
+        </div>
+        <div class="model-box">
+          <div class="model-name">🕐 Time-Aware</div>
+          <div class="model-val">${pred.time_aware_prediction_min ?? '—'} min</div>
+          <div class="model-sub">Hour-adjusted</div>
+        </div>
+        <div class="model-box">
+          <div class="model-name">🤖 Combined</div>
+          <div class="model-val">${pred.predicted_in_minutes ?? '—'} min</div>
+          <div class="model-sub">40% + 60% weighted</div>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-val">${poi.mean_interval_min ?? '—'}</div><div class="stat-lbl">Avg Interval (min)</div></div>
+        <div class="stat-box"><div class="stat-val">${poi.median_interval_min ?? '—'}</div><div class="stat-lbl">Median Interval</div></div>
+        <div class="stat-box"><div class="stat-val">${ms.average ?? '—'}x</div><div class="stat-lbl">Avg Multiplier</div></div>
+        <div class="stat-box"><div class="stat-val">${ms.max ?? '—'}x</div><div class="stat-lbl">Max Multiplier</div></div>
+        <div class="stat-box"><div class="stat-val">${ms.above_100x_pct ?? '—'}%</div><div class="stat-lbl">Chance ≥100x</div></div>
+        <div class="stat-box"><div class="stat-val">${ms.above_200x_pct ?? '—'}%</div><div class="stat-lbl">Chance ≥200x</div></div>
+      </div>
+
+      <div class="chart-title">⏰ Peak Hours in IST</div>
+      ${peakHtml || '<div style="color:var(--muted);font-size:0.75rem;">No hour data yet</div>'}
+
+      <div class="chart-title" style="margin-top:12px;">📅 Day of Week Distribution</div>
+      <div class="dow-chart">${dowHtml}</div>
+
+      <div style="margin-top:12px;">
+        <div class="info-row"><span class="info-key">50% confidence window</span><span class="info-val">${ci50}</span></div>
+        <div class="info-row"><span class="info-key">80% confidence window</span><span class="info-val">${ci80}</span></div>
+        <div class="info-row"><span class="info-key">Std deviation</span><span class="info-val">${poi.std_interval_min ?? '—'} min</span></div>
+        <div class="info-row"><span class="info-key">Training events</span><span class="info-val">${data.total_training_events ?? '—'}</span></div>
+        <div class="info-row"><span class="info-key">Current hour note</span><span class="info-val" style="font-size:0.65rem;max-width:200px;text-align:right;">${ta.adjustment_note || '—'}</span></div>
+      </div>
+    `;
+  }
+
+  function renderInfo(data) {
+    const panel = document.getElementById('p-info');
+    const title = panel.querySelector('.panel-title').outerHTML;
+    panel.innerHTML = title + `
+      <div class="training-bar">
+        Trained on <strong>${data.total_records_used || 0}</strong> historical bonus events &nbsp;·&nbsp;
+        Last retrained: <strong>${data.last_trained_ist || '—'}</strong> &nbsp;·&nbsp;
+        Model: <strong>Poisson + Time-Aware weighted ensemble</strong>
+      </div>
+    `;
+  }
+
+  async function load() {
+    try {
+      const res  = await fetch(ML_URL + '?t=' + Date.now());
+      const data = await res.json();
+      document.getElementById('last-trained').textContent = data.last_trained_ist || '—';
+      renderPanel('p3', data.three_rolls, '3 Rolls');
+      renderPanel('p5', data.five_rolls,  '5 Rolls');
+      renderInfo(data);
+    } catch(e) {
+      console.error(e);
+    }
+  }
+
+  load();
+  setInterval(load, 120_000);
+</script>
+</body>
+</html>
